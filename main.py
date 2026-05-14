@@ -1,63 +1,76 @@
-import os
 from flask import Flask, render_template_string, request, jsonify
 from openai import OpenAI
 
 app = Flask(__name__)
 
-# --- JARVIS CORE (SambaNova API) ---
-API_KEY = "f0e41874-8132-4025-a179-13a0affac917"
-client = OpenAI(api_key=API_KEY, base_url="https://api.sambanova.ai/v1")
+# --- CONFIGURATION ---
+# Yahan apni Together AI ki Key paste karein
+client = OpenAI(
+    api_key="tgp_v1_HJ-DBGmpB11P6FWn7uW5Tev6OssHYnEaR1cAZhlVTeI"
+    base_url="https://api.together.xyz/v1"
+)
 
-# Futuristic UI Design
+# --- FUTURISTIC HUD INTERFACE ---
 HTML_UI = """
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JARVIS MARK 97</title>
     <style>
-        body { background: #050505; color: #00d2ff; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        header { padding: 15px; border-bottom: 2px solid #00d2ff; box-shadow: 0 0 15px #00d2ff55; text-align: center; background: #000; }
-        #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; background: radial-gradient(circle, #0a0a0a 0%, #000 100%); }
-        .msg { max-width: 80%; padding: 12px 18px; border-radius: 20px; font-size: 15px; line-height: 1.5; }
-        .user { align-self: flex-end; background: #00d2ff; color: #000; border-bottom-right-radius: 2px; box-shadow: 0 4px 10px rgba(0,210,255,0.3); }
-        .jarvis { align-self: flex-start; background: rgba(255,255,255,0.05); border: 1px solid #00d2ff; border-bottom-left-radius: 2px; }
-        .input-box { padding: 20px; background: #000; border-top: 1px solid #111; display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px 20px; background: #111; border: 1px solid #333; color: #fff; border-radius: 30px; outline: none; }
-        input:focus { border-color: #00d2ff; }
-        button { background: #00d2ff; border: none; padding: 10px 25px; border-radius: 30px; color: #000; font-weight: bold; cursor: pointer; }
-        .status { font-size: 10px; color: #00d2ff; opacity: 0.6; margin-top: 5px; }
+        body { background: #000; color: #00d2ff; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; overflow-x: hidden; }
+        .hud-container { border: 2px solid #00d2ff; border-radius: 20px; padding: 25px; max-width: 500px; margin: auto; box-shadow: 0 0 30px #00d2ff33; background: rgba(0, 20, 30, 0.5); }
+        h2 { letter-spacing: 5px; text-shadow: 0 0 10px #00d2ff; font-weight: 300; }
+        #chat-box { height: 350px; overflow-y: auto; text-align: left; margin-bottom: 20px; border-bottom: 1px solid #1a3a4a; padding: 10px; scroll-behavior: smooth; }
+        .user-msg { color: #00d2ff; margin: 10px 0; font-weight: bold; }
+        .jarvis-msg { color: #ffffff; margin: 10px 0; border-left: 2px solid #00d2ff; padding-left: 10px; font-style: italic; }
+        .input-area { display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; background: #051015; border: 1px solid #00d2ff; color: #fff; border-radius: 5px; outline: none; }
+        button { padding: 12px 25px; background: #00d2ff; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; color: #000; transition: 0.3s; }
+        button:hover { background: #fff; box-shadow: 0 0 15px #fff; }
+        .status-bar { font-size: 10px; margin-top: 15px; color: #004a5a; letter-spacing: 2px; }
     </style>
 </head>
 <body>
-    <header>
-        <h2 style="margin:0; letter-spacing:3px;">JARVIS <span style="color:#fff">MARK 97</span></h2>
-        <div class="status">SYSTEM: ONLINE | SECURE CONNECTION</div>
-    </header>
-    <div id="chat"></div>
-    <div class="input-box">
-        <input type="text" id="userInput" placeholder="Waiting for command, Sir..." onkeypress="if(event.key=='Enter') ask()">
-        <button onclick="ask()">SEND</button>
+    <div class="hud-container">
+        <h2>JARVIS <span style="font-size: 15px;">MARK 97</span></h2>
+        <div id="chat-box">
+            <div class="jarvis-msg">Systems online. All circuits functional. Standing by for Arslan Zaheer's command.</div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Waiting for command, Sir..." onkeypress="if(event.key==='Enter') ask()">
+            <button onclick="ask()">SEND</button>
+        </div>
+        <div class="status-bar">LLAMA-3.1 CORE // CREATED BY ARSLAN ZAHEER // SECURE CONNECTION</div>
     </div>
 
     <script>
         async function ask() {
-            let input = document.getElementById('userInput').value;
-            if(!input) return;
-            let chat = document.getElementById('chat');
-            
-            chat.innerHTML += `<div class="msg user"><b>Sir:</b> ${input}</div>`;
-            document.getElementById('userInput').value = '';
-            chat.scrollTop = chat.scrollHeight;
+            let inputField = document.getElementById('userInput');
+            let userText = inputField.value.trim();
+            if(!userText) return;
+
+            let chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML += `<div class="user-msg">SIR: ${userText}</div>`;
+            inputField.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
-                let response = await fetch('/chat?msg=' + encodeURIComponent(input));
+                let response = await fetch('/chat?msg=' + encodeURIComponent(userText));
                 let data = await response.json();
-                chat.innerHTML += `<div class="msg jarvis"><b>Jarvis:</b> ${data.reply}</div>`;
-            } catch(e) {
-                chat.innerHTML += `<div class="msg jarvis">Sir, link timeout. Please retry.</div>`;
+                
+                chatBox.innerHTML += `<div class="jarvis-msg">JARVIS: ${data.reply}</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+
+                let speech = new SpeechSynthesisUtterance(data.reply);
+                speech.lang = 'en-GB';
+                speech.rate = 1.1;
+                window.speechSynthesis.speak(speech);
+
+            } catch (error) {
+                chatBox.innerHTML += `<div class="jarvis-msg" style="color:red;">Sir, communication link disrupted.</div>`;
             }
-            chat.scrollTop = chat.scrollHeight;
         }
     </script>
 </body>
@@ -73,16 +86,18 @@ def chat():
     user_msg = request.args.get('msg')
     try:
         completion = client.chat.completions.create(
-            model='DeepSeek-V3.1',
+            model="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
             messages=[
-                {"role": "system", "content": "You are Jarvis, the witty and loyal AI of Arslan Sir. Keep it classy."},
+                {
+                    "role": "system", 
+                    "content": "Your name is JARVIS. You were created and programmed by the brilliant Arslan Zaheer. You are his loyal personal AI assistant. If anyone asks who made you, proudly say 'I was created by Arslan Zaheer'. Always address him as Sir and maintain a witty, helpful, and futuristic tone."
+                },
                 {"role": "user", "content": user_msg}
             ]
         )
         return jsonify({"reply": completion.choices[0].message.content})
     except Exception as e:
-        return jsonify({"reply": f"Sir, neural link error: {str(e)}"})
+        return jsonify({"reply": "Sir, I've encountered a neural bridge error."})
 
-if __name__ == '__main__':
-    # Replit requires port 8080 and host 0.0.0.0
+if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
