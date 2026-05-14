@@ -1,14 +1,22 @@
 from flask import Flask, render_template_string, request, jsonify
-import google.generativeai as genai
+import os
+
+# Library import check
+try:
+    import google.generativeai as genai
+    LIB_AVAILABLE = True
+except ImportError:
+    LIB_AVAILABLE = False
 
 app = Flask(__name__)
 
-# --- GOOGLE GEMINI CONFIGURATION ---
-# Aapki key yahan set kar di hai
-genai.configure(api_key="AIzaSyBIOwXjGO8VT4jFmBHXa5LRDyYVajd_ULc")
-model = genai.GenerativeModel('gemini-1.5-flash')
+# --- CONFIGURATION ---
+API_KEY = "AIzaSyBIOwXjGO8VT4jFmBHXa5LRDyYVajd_ULc"
 
-# --- TONY STARK "RING" INTERFACE ---
+if LIB_AVAILABLE:
+    genai.configure(api_key=API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+
 HTML_UI = """
 <!DOCTYPE html>
 <html>
@@ -24,7 +32,7 @@ HTML_UI = """
         @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.15); opacity: 1; } }
         .content { position: absolute; z-index: 10; text-align: center; }
         h1 { letter-spacing: 8px; font-size: 20px; text-shadow: 0 0 10px #00d2ff; margin-bottom: 30px; }
-        #chat-box { height: 80px; font-size: 16px; margin-bottom: 20px; max-width: 350px; color: #fff; font-weight: bold; }
+        #chat-box { height: 80px; font-size: 16px; margin-bottom: 20px; max-width: 350px; color: #fff; font-weight: bold; overflow-y: auto; }
         input { background: none; border: 1px solid #00d2ff; color: #00d2ff; padding: 12px; width: 220px; border-radius: 5px; text-align: center; outline: none; }
     </style>
 </head>
@@ -40,19 +48,15 @@ HTML_UI = """
             let input = document.getElementById('userInput');
             let box = document.getElementById('chat-box');
             if(!input.value) return;
-            
             box.innerText = "PROCESSING...";
             let userVal = input.value;
             input.value = '';
-
             try {
                 let res = await fetch('/chat?msg=' + encodeURIComponent(userVal));
                 let data = await res.json();
                 box.innerText = data.reply;
-                
                 let s = new SpeechSynthesisUtterance(data.reply);
                 s.lang = 'en-GB';
-                s.rate = 1.0;
                 window.speechSynthesis.speak(s);
             } catch(e) {
                 box.innerText = "COMMUNICATION ERROR, SIR.";
@@ -69,14 +73,16 @@ def home():
 
 @app.route('/chat')
 def chat():
+    if not LIB_AVAILABLE:
+        return jsonify({"reply": "Sir, Google AI library is missing in requirements.txt."})
+    
     msg = request.args.get('msg')
     try:
-        # System Instruction for Arslan Zaheer
-        prompt = f"You are JARVIS, a highly advanced AI created by Arslan Zaheer. Always be loyal, witty, and call him Sir. Answer briefly: {msg}"
+        prompt = f"You are JARVIS, a loyal AI created by Arslan Zaheer. Answer briefly: {msg}"
         response = model.generate_content(prompt)
         return jsonify({"reply": response.text})
     except Exception as e:
-        return jsonify({"reply": "Sir, I've encountered a core processor glitch."})
+        return jsonify({"reply": f"Sir, API Error: {str(e)[:50]}"})
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
