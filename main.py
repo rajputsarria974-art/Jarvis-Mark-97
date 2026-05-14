@@ -4,9 +4,8 @@ from openai import OpenAI
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
-# Yahan apni Together AI ki Key paste karein
 client = OpenAI(
-    api_key="tgp_v1_HJ-DBGmpB11P6FWn7uW5Tev6OssHYnEaR1cAZhlVTeI"
+    api_key="tgp_v1_HJ-DBGmpB11P6FWn7uW5Tev6OssHYnEaR1cAZhlVTeI",
     base_url="https://api.together.xyz/v1"
 )
 
