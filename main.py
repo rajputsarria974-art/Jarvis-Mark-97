@@ -1,74 +1,61 @@
 from flask import Flask, render_template_string, request, jsonify
-from openai import OpenAI
+import google.generativeai as genai
 
 app = Flask(__name__)
 
-# --- CONFIGURATION ---
-client = OpenAI(
-    api_key="tgp_v1_HJ-DBGmpB11P6FWn7uW5Tev6OssHYnEaR1cAZhlVTeI",
-    base_url="https://api.together.xyz/v1"
-)
+# --- GOOGLE GEMINI CONFIGURATION ---
+# Aapki key yahan set kar di hai
+genai.configure(api_key="AIzaSyBIOwXjGO8VT4jFmBHXa5LRDyYVajd_ULc")
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-# --- FUTURISTIC HUD INTERFACE ---
+# --- TONY STARK "RING" INTERFACE ---
 HTML_UI = """
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JARVIS MARK 97</title>
     <style>
-        body { background: #000; color: #00d2ff; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; overflow-x: hidden; }
-        .hud-container { border: 2px solid #00d2ff; border-radius: 20px; padding: 25px; max-width: 500px; margin: auto; box-shadow: 0 0 30px #00d2ff33; background: rgba(0, 20, 30, 0.5); }
-        h2 { letter-spacing: 5px; text-shadow: 0 0 10px #00d2ff; font-weight: 300; }
-        #chat-box { height: 350px; overflow-y: auto; text-align: left; margin-bottom: 20px; border-bottom: 1px solid #1a3a4a; padding: 10px; scroll-behavior: smooth; }
-        .user-msg { color: #00d2ff; margin: 10px 0; font-weight: bold; }
-        .jarvis-msg { color: #ffffff; margin: 10px 0; border-left: 2px solid #00d2ff; padding-left: 10px; font-style: italic; }
-        .input-area { display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; background: #051015; border: 1px solid #00d2ff; color: #fff; border-radius: 5px; outline: none; }
-        button { padding: 12px 25px; background: #00d2ff; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; color: #000; transition: 0.3s; }
-        button:hover { background: #fff; box-shadow: 0 0 15px #fff; }
-        .status-bar { font-size: 10px; margin-top: 15px; color: #004a5a; letter-spacing: 2px; }
+        body { background: #000; color: #00d2ff; font-family: 'Courier New', monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .ring-container { position: relative; width: 250px; height: 250px; display: flex; justify-content: center; align-items: center; }
+        .ring { position: absolute; border: 2px solid #00d2ff; border-radius: 50%; animation: pulse 1.5s infinite ease-in-out; }
+        .r1 { width: 100%; height: 100%; opacity: 0.2; }
+        .r2 { width: 70%; height: 70%; opacity: 0.5; animation-delay: 0.3s; }
+        .r3 { width: 40%; height: 40%; opacity: 1; border-width: 3px; box-shadow: 0 0 20px #00d2ff; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.15); opacity: 1; } }
+        .content { position: absolute; z-index: 10; text-align: center; }
+        h1 { letter-spacing: 8px; font-size: 20px; text-shadow: 0 0 10px #00d2ff; margin-bottom: 30px; }
+        #chat-box { height: 80px; font-size: 16px; margin-bottom: 20px; max-width: 350px; color: #fff; font-weight: bold; }
+        input { background: none; border: 1px solid #00d2ff; color: #00d2ff; padding: 12px; width: 220px; border-radius: 5px; text-align: center; outline: none; }
     </style>
 </head>
 <body>
-    <div class="hud-container">
-        <h2>JARVIS <span style="font-size: 15px;">MARK 97</span></h2>
-        <div id="chat-box">
-            <div class="jarvis-msg">Systems online. All circuits functional. Standing by for Arslan Zaheer's command.</div>
-        </div>
-        <div class="input-area">
-            <input type="text" id="userInput" placeholder="Waiting for command, Sir..." onkeypress="if(event.key==='Enter') ask()">
-            <button onclick="ask()">SEND</button>
-        </div>
-        <div class="status-bar">LLAMA-3.1 CORE // CREATED BY ARSLAN ZAHEER // SECURE CONNECTION</div>
+    <div class="ring-container"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
+    <div class="content">
+        <h1>J.A.R.V.I.S.</h1>
+        <div id="chat-box">SYSTEMS ONLINE. AWAITING COMMAND, SIR.</div>
+        <input type="text" id="userInput" placeholder="COMMAND ARSLAN..." onkeypress="if(event.key==='Enter') ask()">
     </div>
-
     <script>
         async function ask() {
-            let inputField = document.getElementById('userInput');
-            let userText = inputField.value.trim();
-            if(!userText) return;
-
-            let chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML += `<div class="user-msg">SIR: ${userText}</div>`;
-            inputField.value = '';
-            chatBox.scrollTop = chatBox.scrollHeight;
+            let input = document.getElementById('userInput');
+            let box = document.getElementById('chat-box');
+            if(!input.value) return;
+            
+            box.innerText = "PROCESSING...";
+            let userVal = input.value;
+            input.value = '';
 
             try {
-                let response = await fetch('/chat?msg=' + encodeURIComponent(userText));
-                let data = await response.json();
+                let res = await fetch('/chat?msg=' + encodeURIComponent(userVal));
+                let data = await res.json();
+                box.innerText = data.reply;
                 
-                chatBox.innerHTML += `<div class="jarvis-msg">JARVIS: ${data.reply}</div>`;
-                chatBox.scrollTop = chatBox.scrollHeight;
-
-                let speech = new SpeechSynthesisUtterance(data.reply);
-                speech.lang = 'en-GB';
-                speech.rate = 1.1;
-                window.speechSynthesis.speak(speech);
-
-            } catch (error) {
-                chatBox.innerHTML += `<div class="jarvis-msg" style="color:red;">Sir, communication link disrupted.</div>`;
+                let s = new SpeechSynthesisUtterance(data.reply);
+                s.lang = 'en-GB';
+                s.rate = 1.0;
+                window.speechSynthesis.speak(s);
+            } catch(e) {
+                box.innerText = "COMMUNICATION ERROR, SIR.";
             }
         }
     </script>
@@ -82,21 +69,14 @@ def home():
 
 @app.route('/chat')
 def chat():
-    user_msg = request.args.get('msg')
+    msg = request.args.get('msg')
     try:
-        completion = client.chat.completions.create(
-            model="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-            messages=[
-                {
-                    "role": "system", 
-                    "content": "Your name is JARVIS. You were created and programmed by the brilliant Arslan Zaheer. You are his loyal personal AI assistant. If anyone asks who made you, proudly say 'I was created by Arslan Zaheer'. Always address him as Sir and maintain a witty, helpful, and futuristic tone."
-                },
-                {"role": "user", "content": user_msg}
-            ]
-        )
-        return jsonify({"reply": completion.choices[0].message.content})
+        # System Instruction for Arslan Zaheer
+        prompt = f"You are JARVIS, a highly advanced AI created by Arslan Zaheer. Always be loyal, witty, and call him Sir. Answer briefly: {msg}"
+        response = model.generate_content(prompt)
+        return jsonify({"reply": response.text})
     except Exception as e:
-        return jsonify({"reply": "Sir, I've encountered a neural bridge error."})
+        return jsonify({"reply": "Sir, I've encountered a core processor glitch."})
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
