@@ -1,58 +1,114 @@
+import os
+import requests
 from flask import Flask, render_template_string, request, jsonify
-from openai import OpenAI
 
 app = Flask(__name__)
 
-# --- SAMBANOVA CONFIGURATION (NEW KEY) ---
-client = OpenAI(
-    api_key="11b55145-d2b2-477a-91a3-f135cc42193b", 
-    base_url="https://api.sambanova.ai/v1"
-)
+# --- ARSLAN INDUSTRIES CONFIG ---
+# GitHub Codespaces mein hum key direct define kar rahe hain taake error na aaye
+SAMBA_KEY = "91799786-896c-4813-8207-68b323c21a11"
 
-# --- TONY STARK RING INTERFACE ---
 HTML_UI = """
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>JARVIS MARK 97</title>
+    <meta charset="UTF-8">
+    <title>J.A.R.V.I.S | ARSLAN INDUSTRIES</title>
     <style>
-        body { background: #000; color: #00d2ff; font-family: 'Courier New', monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .ring-container { position: relative; width: 260px; height: 260px; display: flex; justify-content: center; align-items: center; }
-        .ring { position: absolute; border: 2px solid #00d2ff; border-radius: 50%; animation: pulse 1.5s infinite ease-in-out; }
-        .r1 { width: 100%; height: 100%; opacity: 0.2; }
-        .r2 { width: 75%; height: 75%; opacity: 0.5; animation-delay: 0.3s; }
-        .r3 { width: 50%; height: 50%; opacity: 1; border-width: 3px; box-shadow: 0 0 25px #00d2ff; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 40px #00d2ff; } }
-        .content { position: absolute; z-index: 10; text-align: center; width: 100%; }
-        h1 { letter-spacing: 10px; font-size: 22px; text-shadow: 0 0 15px #00d2ff; margin-bottom: 35px; color: #00d2ff; }
-        #chat-box { height: 80px; font-size: 16px; margin-bottom: 25px; color: #ffffff; font-style: italic; max-width: 400px; margin-left: auto; margin-right: auto; }
-        input { background: rgba(0, 210, 255, 0.05); border: 1px solid #00d2ff; color: #00d2ff; padding: 12px; width: 240px; border-radius: 20px; text-align: center; outline: none; box-shadow: 0 0 10px #00d2ff22; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+        
+        body { 
+            background: radial-gradient(circle, #051923 0%, #00050a 100%);
+            color: #00d2ff; font-family: 'Orbitron', sans-serif; 
+            margin: 0; overflow: hidden; height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        .header { position: absolute; top: 50px; text-align: center; }
+        .logo { 
+            font-size: 60px; font-weight: 900; letter-spacing: 20px; color: #fff;
+            text-shadow: 0 0 20px #00d2ff, 0 0 40px #00d2ff;
+        }
+        .sub { font-size: 10px; letter-spacing: 5px; color: rgba(0, 210, 255, 0.6); margin-top: 10px; }
+
+        .hud-main {
+            position: relative; width: 300px; height: 300px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .ring {
+            position: absolute; width: 100%; height: 100%;
+            border: 2px solid rgba(0, 210, 255, 0.2); border-radius: 50%;
+        }
+
+        .ring-spin {
+            position: absolute; width: 90%; height: 90%;
+            border: 4px dashed #00d2ff; border-radius: 50%;
+            animation: spin 12s linear infinite; opacity: 0.6;
+        }
+
+        .core-glow {
+            width: 80px; height: 80px; background: radial-gradient(circle, #fff, #00d2ff);
+            border-radius: 50%; box-shadow: 0 0 60px #00d2ff;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); opacity: 0.7; } }
+
+        #response-box {
+            width: 80%; max-width: 700px; margin-top: 40px; padding: 20px;
+            background: rgba(0, 210, 255, 0.05); border-left: 4px solid #00d2ff;
+            min-height: 40px; color: #fff; font-size: 18px; text-transform: uppercase;
+        }
+
+        .input-container { position: fixed; bottom: 80px; width: 100%; text-align: center; }
+        input {
+            background: rgba(0, 0, 0, 0.8); border: 1px solid #00d2ff; color: #00d2ff;
+            padding: 15px 30px; width: 400px; border-radius: 50px; outline: none;
+            font-family: 'Orbitron'; font-size: 16px; box-shadow: 0 0 15px rgba(0,210,255,0.2);
+        }
     </style>
 </head>
 <body>
-    <div class="ring-container"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
-    <div class="content">
-        <h1>J.A.R.V.I.S.</h1>
-        <div id="chat-box">SAMBANOVA ENGINE INITIALIZED. READY, SIR.</div>
-        <input type="text" id="userInput" placeholder="COMMAND ARSLAN ZAHEER..." onkeypress="if(event.key==='Enter') ask()">
+    <div class="header">
+        <div class="logo">J.A.R.V.I.S</div>
+        <div class="sub">VIRTUAL ASSISTANT | ARSLAN INDUSTRIES</div>
     </div>
+
+    <div class="hud-main">
+        <div class="ring"></div>
+        <div class="ring-spin"></div>
+        <div class="core-glow"></div>
+    </div>
+
+    <div id="response-box">SYSTEM INITIALIZED, SIR ARSLAN.</div>
+
+    <div class="input-container">
+        <input type="text" id="user-in" placeholder="AWAITING COMMAND..." onkeypress="if(event.key==='Enter') send()">
+    </div>
+
     <script>
-        async function ask() {
-            let input = document.getElementById('userInput');
-            let box = document.getElementById('chat-box');
-            if(!input.value) return;
-            box.innerText = "ACCESSING CORE...";
-            let userVal = input.value;
-            input.value = '';
+        async function send() {
+            const i = document.getElementById('user-in');
+            const r = document.getElementById('response-box');
+            if(!i.value) return;
+            
+            let cmd = i.value;
+            i.value = '';
+            r.innerText = ">> ANALYZING DATA...";
+            
             try {
-                let res = await fetch('/chat?msg=' + encodeURIComponent(userVal));
-                let data = await res.json();
-                box.innerText = data.reply;
-                let s = new SpeechSynthesisUtterance(data.reply);
-                s.lang = 'en-GB';
-                window.speechSynthesis.speak(s);
+                const res = await fetch('/chat?msg=' + encodeURIComponent(cmd));
+                const data = await res.json();
+                r.innerText = ">> " + data.reply;
+                
+                // Voice Response
+                const speech = new SpeechSynthesisUtterance(data.reply);
+                speech.rate = 1.1;
+                window.speechSynthesis.speak(speech);
             } catch(e) {
-                box.innerText = "COMMUNICATION LINK SEVERED, SIR.";
+                r.innerText = ">> ERROR: NEURAL LINK DISCONNECTED.";
             }
         }
     </script>
@@ -67,17 +123,26 @@ def home():
 @app.route('/chat')
 def chat():
     msg = request.args.get('msg')
+    url = "https://api.sambanova.ai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {SAMBA_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "Meta-Llama-3.1-70B-Instruct",
+        "messages": [
+            {"role": "system", "content": "You are J.A.R.V.I.S, the highly intelligent and polite AI of Sir Arslan Zaheer. Use short, sharp, and professional phrases. Always call him Sir."},
+            {"role": "user", "content": msg}
+        ],
+        "temperature": 0.1
+    }
     try:
-        completion = client.chat.completions.create(
-            model="Meta-Llama-3.1-70B-Instruct",
-            messages=[
-                {"role": "system", "content": "Your name is JARVIS. You were created by Arslan Zaheer. Be loyal, witty, and call him Sir."},
-                {"role": "user", "content": msg}
-            ]
-        )
-        return jsonify({"reply": completion.choices[0].message.content})
-    except Exception as e:
-        return jsonify({"reply": "Sir, authentication failed or limit reached."})
+        response = requests.post(url, headers=headers, json=payload, timeout=15)
+        bot_reply = response.json()['choices'][0]['message']['content']
+        return jsonify({"reply": bot_reply})
+    except:
+        return jsonify({"reply": "Sir, there is a connection issue with SambaNova servers."})
 
 if __name__ == "__main__":
+    # GitHub Codespaces usually uses port 8080 or 5000
     app.run(host='0.0.0.0', port=8080)
